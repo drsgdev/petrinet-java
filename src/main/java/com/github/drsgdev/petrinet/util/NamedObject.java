@@ -1,4 +1,4 @@
-package com.github.drsgdev.petrinet;
+package com.github.drsgdev.petrinet.util;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,7 +11,7 @@ public abstract class NamedObject {
 
   @Getter
   @Setter
-  protected String name;
+  protected String name = "arc";
 
   public static final int INFINITE_TOKENS = -1;
 }
