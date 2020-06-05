@@ -16,21 +16,34 @@ public class Petrinet {
   }
 
   @Getter
+  private boolean onPause = true;
+
+  @Getter
+  private boolean hasStarted = false;
+
+  @Getter
   private Map<String, Transition> transitions = new HashMap<>();
 
   @Getter
   private Map<String, Place> places = new HashMap<>();
-
-  @Getter
-  private int arcsCount = 0;
 
   public void addConnection(String placeName, String transitionName, Direction d) throws InterruptedException {
     Place place = places.containsKey(placeName) ? places.get(placeName) : new Place(placeName);
     Transition transition = transitions.containsKey(transitionName) ? transitions.get(transitionName)
         : new Transition(transitionName);
 
-    Arc arc = new Arc("arc" + arcsCount, place);
-    arcsCount++;
+    StringBuilder arcName = new StringBuilder(placeName);
+    switch (d) {
+      case TO_PLACE:
+        arcName.append("_from_");
+        break;
+      case FROM_PLACE:
+        arcName.append("_to_");
+        break;
+    }
+    arcName.append(transitionName);
+
+    Arc arc = new Arc(arcName.toString(), place);
 
     switch (d) {
       case TO_PLACE:
@@ -46,21 +59,35 @@ public class Petrinet {
   }
 
   public void start() {
-    transitions.values().parallelStream().forEach((tr) -> {
-      tr.start();
-    });
+    if (!started()) {
+      transitions.values().parallelStream().forEach((tr) -> {
+        tr.start();
+      });
+
+      hasStarted = true;
+    }
   }
 
   public void resume() {
-    transitions.values().parallelStream().forEach((tr) -> {
-      tr.enable();
-    });
+    if (onPause) {
+      transitions.values().parallelStream().forEach((tr) -> {
+        tr.enable();
+      });
+
+      onPause = false;
+    }
   }
 
   public void pause() {
-    transitions.values().parallelStream().forEach((tr) -> {
-      tr.disable();
-    });
+    if (!onPause) {
+      transitions.values().parallelStream().forEach((tr) -> {
+        if (tr.isEnabled()) {
+          tr.disable();
+        }
+      });
+
+      onPause = true;
+    }
   }
 
   public void info() {
@@ -69,9 +96,27 @@ public class Petrinet {
     });
   }
 
+  public void setTickrate(final long time) {
+    if (time >= 0l) {
+      pause();
+      transitions.values().parallelStream().forEach((tr) -> {
+        tr.setDelay(time);
+      });
+      resume();
+    }
+  }
+
   public void addTokens(String place, int amnt) {
     if (places.containsKey(place)) {
       places.get(place).addTokens(amnt);
+    }
+  }
+
+  private boolean started() {
+    if (hasStarted) {
+      throw new IllegalStateException();
+    } else {
+      return false;
     }
   }
 }

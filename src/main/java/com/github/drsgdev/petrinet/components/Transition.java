@@ -4,11 +4,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class Transition extends Thread {
 
   private boolean enabled = true;
 
+  @Getter
+  @Setter
+  private long delay = 1l;
+
+  @Getter
   private Map<String, Arc> incoming = new HashMap<>();
+  @Getter
   private Map<String, Arc> outgoing = new HashMap<>();
 
   public Transition(String name) {
@@ -47,8 +56,12 @@ public class Transition extends Thread {
     }
   }
 
-  public boolean disconnected() {
+  public boolean isDisconnected() {
     return incoming.isEmpty() || outgoing.isEmpty();
+  }
+
+  public boolean isEnabled() {
+    return enabled;
   }
 
   public void enable() {
@@ -68,13 +81,13 @@ public class Transition extends Thread {
         }
       }
 
-      delay(500);
+      tick();
     }
   }
 
-  private void delay(long ms) {
+  private void tick() {
     try {
-      Thread.sleep(ms);
+      Thread.sleep(this.delay);
     } catch (InterruptedException ex) {
       ex.printStackTrace();
     }
