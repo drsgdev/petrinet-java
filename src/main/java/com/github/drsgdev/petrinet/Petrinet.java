@@ -19,7 +19,10 @@ public class Petrinet {
   private boolean onPause = true;
 
   @Getter
-  private boolean hasStarted = false;
+  private boolean started = false;
+
+  @Getter
+  private boolean built = false;
 
   @Getter
   private Map<String, Transition> transitions = new HashMap<>();
@@ -27,7 +30,7 @@ public class Petrinet {
   @Getter
   private Map<String, Place> places = new HashMap<>();
 
-  public void addConnection(String placeName, String transitionName, Direction d) throws InterruptedException {
+  public void addConnection(String placeName, String transitionName, Direction d) {
     Place place = places.containsKey(placeName) ? places.get(placeName) : new Place(placeName);
     Transition transition = transitions.containsKey(transitionName) ? transitions.get(transitionName)
         : new Transition(transitionName);
@@ -56,6 +59,7 @@ public class Petrinet {
 
     places.put(placeName, place);
     transitions.put(transitionName, transition);
+    built = true;
   }
 
   public void start() {
@@ -64,7 +68,7 @@ public class Petrinet {
         tr.start();
       });
 
-      hasStarted = true;
+      started = true;
     }
   }
 
@@ -106,6 +110,14 @@ public class Petrinet {
     }
   }
 
+  public void destroy() {
+    transitions.clear();
+    places.clear();
+    onPause = true;
+    started = false;
+    built = false;
+  }
+
   public void addTokens(String place, int amnt) {
     if (places.containsKey(place)) {
       places.get(place).addTokens(amnt);
@@ -113,7 +125,7 @@ public class Petrinet {
   }
 
   private boolean started() {
-    if (hasStarted) {
+    if (started) {
       throw new IllegalStateException();
     } else {
       return false;
