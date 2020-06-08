@@ -12,7 +12,7 @@ import lombok.Getter;
 public class Petrinet {
 
   public enum Direction {
-    TO_PLACE, FROM_PLACE
+    TO, FROM
   }
 
   @Getter
@@ -30,17 +30,17 @@ public class Petrinet {
   @Getter
   private Map<String, Place> places = new HashMap<>();
 
-  public void addConnection(String placeName, String transitionName, Direction d) {
+  public void addConnection(String placeName, Direction d, String transitionName) {
     Place place = places.containsKey(placeName) ? places.get(placeName) : new Place(placeName);
     Transition transition = transitions.containsKey(transitionName) ? transitions.get(transitionName)
         : new Transition(transitionName);
 
     StringBuilder arcName = new StringBuilder(placeName);
     switch (d) {
-      case TO_PLACE:
+      case FROM:
         arcName.append("_from_");
         break;
-      case FROM_PLACE:
+      case TO:
         arcName.append("_to_");
         break;
     }
@@ -49,10 +49,10 @@ public class Petrinet {
     Arc arc = new Arc(arcName.toString(), place);
 
     switch (d) {
-      case TO_PLACE:
+      case FROM:
         transition.addOutgoing(arc);
         break;
-      case FROM_PLACE:
+      case TO:
         transition.addIncoming(arc);
         break;
     }

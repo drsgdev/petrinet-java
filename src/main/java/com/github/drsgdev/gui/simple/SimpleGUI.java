@@ -23,47 +23,6 @@ public class SimpleGUI {
     firstPage();
   }
 
-  private void cover() {
-    clrscr();
-
-    System.out.println("Petrinet builder");
-    System.out.println("");
-  }
-
-  public static void clrscr() {
-    try {
-      if (System.getProperty("os.name").contains("Windows"))
-        new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
-      else
-        Runtime.getRuntime().exec("clear");
-    } catch (IOException | InterruptedException ex) {
-      ex.printStackTrace();
-    }
-  }
-
-  private void err() {
-    System.out.println("Input is not recognized!");
-  }
-
-  private void waitForInput() {
-    System.out.println("Press enter to continue...");
-    console.readLine();
-  }
-
-  private void input(Runnable func) {
-    System.out.println("");
-    System.out.print("Input command: ");
-
-    while (true) {
-      if (inScanner.hasNextInt()) {
-        func.run();
-      } else {
-        err();
-        waitForInput();
-      }
-    }
-  }
-
   private void firstPage() {
     cover();
 
@@ -80,9 +39,10 @@ public class SimpleGUI {
           break;
         default:
           err();
-          waitForInput();
           break;
       }
+
+      firstPage();
     });
   }
 
@@ -92,8 +52,9 @@ public class SimpleGUI {
     System.out.println("1. Start");
     System.out.println("2. Add connection");
     System.out.println("3. Add tokens");
-    System.out.println("4. Destroy");
-    System.out.println("5. Back");
+    System.out.println("4. Set tickrate");
+    System.out.println("5. Destroy");
+    System.out.println("6. Back");
 
     input(() -> {
       switch (inScanner.nextInt()) {
@@ -103,26 +64,27 @@ public class SimpleGUI {
         case 2:
           handleConnection();
           waitForInput();
-          builder();
           break;
         case 3:
           handleTokens();
           waitForInput();
-          builder();
           break;
         case 4:
+          handleTickrate();
+          break;
+        case 5:
           network.destroy();
           firstPage();
           break;
-        case 5:
+        case 6:
           firstPage();
           break;
         default:
           err();
-          waitForInput();
-          builder();
           break;
       }
+
+      builder();
     });
   }
 
@@ -130,24 +92,26 @@ public class SimpleGUI {
     cover();
 
     String placeName = handleInput("Input place name: ");
+    String directionName = handleInput("Input direction(from / to <default>): ");
     String transitionName = handleInput("Input transition name: ");
-    String directionName = handleInput("Input direction(from <default> / to): ");
 
     Direction direction;
     switch (directionName) {
-      case "from":
-        direction = Direction.FROM_PLACE;
-        break;
       case "to":
-        direction = Direction.TO_PLACE;
+        direction = Direction.TO;
+        break;
+      case "from":
+        direction = Direction.FROM;
         break;
       default:
-        direction = Direction.FROM_PLACE;
+        direction = Direction.FROM;
         break;
     }
 
-    network.addConnection(placeName, transitionName, direction);
-    System.out.println("added " + placeName + " " + direction + " " + transitionName);
+    network.addConnection(placeName, direction, transitionName);
+
+    cover();
+    System.out.println("Added connection: " + placeName + " " + direction + " " + transitionName);
   }
 
   private void handleTokens() {
@@ -159,10 +123,16 @@ public class SimpleGUI {
     network.addTokens(placeName, amnt);
   }
 
+  private void handleTickrate() {
+    cover();
+
+    long tickrate = Long.parseLong(handleInput("Input desired tickrate(in milliseconds): "));
+
+    network.setTickrate(tickrate);
+  }
+
   private void networkInfo() {
     if (network.isBuilt()) {
-      network.setTickrate(100);
-
       if (network.isStarted()) {
         network.resume();
       } else {
@@ -174,39 +144,81 @@ public class SimpleGUI {
       System.out.println("Build the network first!");
       waitForInput();
     }
-
-    builder();
   }
 
-  synchronized void printInfo() {
-    Thread info = new Thread(() -> {
-      while (true) {
+  class InfoPrinter extends Thread {
+    private boolean enabled = true;
+
+    public synchronized void disable() {
+      enabled = false;
+    }
+
+    public void run() {
+      while (enabled) {
         cover();
 
         network.info();
       }
-    });
+    }
+  }
 
+  private void printInfo() {
+    InfoPrinter info = new InfoPrinter();
+
+    info.start();
+    console.readLine();
+    info.disable();
+  }
+
+  private void cover() {
+    clrscr();
+
+    System.out.println("Petrinet builder");
+    System.out.println("");
+  }
+
+  public static void clrscr() {
     try {
-      info.start();
-      System.in.read();
-      info.join();
-    } catch (InterruptedException | IOException ex) {
+      if (System.getProperty("os.name").contains("Windows"))
+        new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+      else
+        new ProcessBuilder("bash", "-c", "clear").inheritIO().start().waitFor();
+    } catch (IOException | InterruptedException ex) {
       ex.printStackTrace();
+    }
+  }
+
+  private void err() {
+    System.out.println("Input is not recognized!");
+    waitForInput();
+  }
+
+  private void waitForInput() {
+    System.out.println("Press enter to continue...");
+    console.readLine();
+  }
+
+  private void input(Runnable func) {
+    System.out.println("");
+    System.out.print("Input command: ");
+
+    while (true) {
+      if (inScanner.hasNextInt()) {
+        func.run();
+      } else {
+        err();
+      }
     }
   }
 
   private String handleInput(String req) {
     while (true) {
       System.out.println(req);
-      if (inScanner.hasNextLine()) {
-        String line = inScanner.nextLine();
-        if (!line.isEmpty()) {
-          return line;
-        } else {
-          err();
-          waitForInput();
-        }
+      String line = console.readLine();
+      if (!line.isEmpty()) {
+        return line;
+      } else {
+        err();
       }
     }
   }
