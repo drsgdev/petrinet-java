@@ -169,20 +169,31 @@ public class SimpleGUI {
         network.start();
       }
 
-      while (true) {
-        cover();
-
-        network.info();
-        if (Thread.currentThread().isInterrupted()) {
-          network.pause();
-        }
-      }
+      printInfo();
     } else {
       System.out.println("Build the network first!");
       waitForInput();
     }
 
     builder();
+  }
+
+  synchronized void printInfo() {
+    Thread info = new Thread(() -> {
+      while (true) {
+        cover();
+
+        network.info();
+      }
+    });
+
+    try {
+      info.start();
+      System.in.read();
+      info.join();
+    } catch (InterruptedException | IOException ex) {
+      ex.printStackTrace();
+    }
   }
 
   private String handleInput(String req) {
